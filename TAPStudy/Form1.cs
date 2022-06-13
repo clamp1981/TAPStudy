@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -32,8 +33,6 @@ namespace TAPStudy
             lvi.SubItems.Add("Not Started");
             lvi.SubItems.Add("1");            
             lvi.SubItems.Add("---");
-            lvi.SubItems.Add("---");           
-
             this.listView1.Items.Add(lvi);
 
             return lvi;
@@ -54,18 +53,60 @@ namespace TAPStudy
 
             foreach (var task in tasks)
             {
+                int index = task.Id - 1; 
+                this.listView1.Items[index].SubItems[1].Text = "Started";
                 task.Start();
             }
 
-            Task.WaitAll(tasks, 10000);
-            Console.WriteLine("All task is done.");
+            //모든 비동기 작업이 완료 되기를 기다린다. 
+            //Task.WaitAll(tasks, 10000);
+            //Console.WriteLine("All task is done.");
+            //for (var i = 0; i < tasks.Length; i++)
+            //{
+            //    this.listView1.Items[i].SubItems[3].Text = tasks[i].Result.ToString();
 
+            //}
+
+            //task중 하나라도 완료 하면 블럭이 해제
+            var taksIndex = Task.WaitAny(tasks, 10000);
+            Console.WriteLine($"완료 : {taksIndex}");
             for (var i = 0; i < tasks.Length; i++)
             {
-                this.listView1.Items[i].SubItems[3].Text = tasks[i].Result.ToString();
+                if(tasks[i].Status == TaskStatus.RanToCompletion)
+                {
+                    this.listView1.Items[i].SubItems[1].Text = "Finish";
+                    this.listView1.Items[i].SubItems[3].Text = tasks[i].Result.ToString();
+                }
+                else
+                    Console.WriteLine("   Task {0}: {1}", tasks[i].Id, tasks[i].Status);
 
             }
 
+        }
+
+       
+        private void button2_Click(object sender, EventArgs e)
+        {
+            var tasks = new Task<BigInteger>[this.listView1.Items.Count];
+            for (var i = 0; i < this.listView1.Items.Count; i++)
+            {
+                int target = Convert.ToInt32(this.listView1.Items[i].SubItems[0].Text);
+                tasks[i] = Task.Factory.StartNew(() =>
+               {
+                   return cal.Calculate((int)target);
+               });
+
+                this.listView1.Items[i].SubItems[1].Text = "Started";
+            }
+
+            Task.WaitAll(tasks, 10000);
+
+
+            for (var i = 0; i < this.listView1.Items.Count; i++)
+            {
+                this.listView1.Items[i].SubItems[1].Text = "Finish";
+                this.listView1.Items[i].SubItems[3].Text = tasks[i].Result.ToString();
+            }
 
 
 
