@@ -12,14 +12,15 @@ using System.Windows.Forms;
 
 namespace TAPStudy
 {
+   
     public partial class Form1 : Form
     {
         CalculateFactorial cal = new CalculateFactorial();
         public Form1()
         {
-            InitializeComponent();
+            InitializeComponent();           
 
-            for( int i = 10; i <= 100; i += 10 )
+            for ( int i = 10; i <= 100; i += 10 )
             {
                 AddListViewItem(i);
             }
@@ -33,6 +34,7 @@ namespace TAPStudy
             lvi.SubItems.Add("Not Started");
             lvi.SubItems.Add("1");            
             lvi.SubItems.Add("---");
+            lvi.Tag = testNumber.ToString();
             this.listView1.Items.Add(lvi);
 
             return lvi;
@@ -81,9 +83,7 @@ namespace TAPStudy
                     Console.WriteLine("   Task {0}: {1}", tasks[i].Id, tasks[i].Status);
 
             }
-
         }
-
        
         private void button2_Click(object sender, EventArgs e)
         {
@@ -99,6 +99,7 @@ namespace TAPStudy
                 this.listView1.Items[i].SubItems[1].Text = "Started";
             }
 
+            //모든 task 작업이 완료 될때까지 대기 
             Task.WaitAll(tasks, 10000);
 
 
@@ -109,6 +110,32 @@ namespace TAPStudy
             }
 
 
+
+        }
+
+        //비동기 함수 연속 연결
+        private void button3_Click(object sender, EventArgs e)
+        {            
+            for (var i = 0; i < this.listView1.Items.Count; i++)
+            {
+                int target = Convert.ToInt32(this.listView1.Items[i].SubItems[0].Text);
+                var task = Task<BigInteger>.Factory.StartNew(() => cal.Calculate((int)target)).ContinueWith((x =>
+               {
+                   Console.WriteLine( $"ContinueWith : {target}, {x.Result}");
+                   int index = this.listView1.Items.Cast<ListViewItem>().Where( t => (t.Text == target.ToString())).FirstOrDefault().Index;
+                   this.listView1.Items[index].SubItems[1].Text = "Finish";
+                   this.listView1.Items[index].SubItems[3].Text = x.Result.ToString();
+                   return x.Result;
+               }), TaskScheduler.FromCurrentSynchronizationContext() );
+
+                this.listView1.Items[i].SubItems[1].Text = "Started";
+              
+            }
+
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
 
         }
     }
