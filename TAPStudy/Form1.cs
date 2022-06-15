@@ -16,6 +16,8 @@ namespace TAPStudy
     public partial class Form1 : Form
     {
         CalculateFactorial cal = new CalculateFactorial();
+        List<Progress<ProgressEventArgs>> progresses = new List<Progress<ProgressEventArgs>>();       
+     
         public Form1()
         {
             InitializeComponent();           
@@ -24,65 +26,87 @@ namespace TAPStudy
             {
                 AddListViewItem(i);
             }
+            AddProgressBarInLisviewItem(1);
         }
 
+    
 
-        private ListViewItem AddListViewItem(int testNumber)
+        private void AddListViewItem(int testNumber)
         {
             ListViewItem lvi = new ListViewItem();
             lvi.Text = testNumber.ToString();
-            lvi.SubItems.Add("Not Started");
-            lvi.SubItems.Add("1");            
+            lvi.SubItems.Add("---");
+            lvi.SubItems.Add("---");            
             lvi.SubItems.Add("---");
             lvi.Tag = testNumber.ToString();
             this.listView1.Items.Add(lvi);
 
-            return lvi;
+            
+
         }
 
+        private void AddProgressBarInLisviewItem( int pbIndex )
+        {
+            for( int i = 0; i < this.listView1.Items.Count; i++ )
+            {
+                ProgressBar pb = new ProgressBar();
+                pb.Minimum = 0;
+                pb.Maximum = 100;
+                pb.Value = 0;
+                pb.Visible = true;
+                pb.Parent = this.listView1;
+                Rectangle rt = new Rectangle();             
+                rt = this.listView1.Items[i].Bounds;
+                pb.SetBounds(rt.X + this.listView1.Columns[pbIndex-1].Width , rt.Y , this.listView1.Columns[pbIndex].Width, rt.Height);
+                this.listView1.Controls.Add(pb);
+                Progress<ProgressEventArgs> pp = new Progress<ProgressEventArgs>();
+                pp.ProgressChanged += Pp_ProgressChanged;
+                this.progresses.Add(pp);
+            }
 
+            
+        }
+
+        private void Pp_ProgressChanged(object sender, ProgressEventArgs e)
+        {
+            //int index = this.progresses.FindIndex(x => x == sender);
+            Console.WriteLine($"Pp_ProgressChanged : {e.index}, {e.percent }");
+            if(e.percent < 100 )
+                this.listView1.Items[e.index].SubItems[2].Text = "calculating...";
+            ProgressBar pb = this.listView1.Controls[e.index] as ProgressBar;
+            pb.Value = e.percent;
+           
+        }
 
         private void button1_Click(object sender, EventArgs e)
         {
             var tasks = new Task<BigInteger>[this.listView1.Items.Count];
+            
             for (var i = 0; i < this.listView1.Items.Count; i++)
             {
+                //루프문 안에서는 람다에 넘겨줄 값들을 캡쳐 해 놓아야 한다.
+                //람다나 무명 메서드 사용 시 로컬 변수를 사용하면 클로저 처리 되는데, 로컬 변수가 참조값으로 
+                //계속 해서 변경 되므로 내부 적으로 로컬 변수로 해당 값을 받아 처리 하여야 한다. 
                 int target = Convert.ToInt32(this.listView1.Items[i].SubItems[0].Text);
-                var task = new Task<BigInteger>(() => cal.Calculate((int)target));
-                tasks[i] = task;
+                int index = i;
+                tasks[index] = new Task<BigInteger>( () => { return cal.Calculate((int)target, index, progresses[index]); } );
+                tasks[index].ContinueWith(x =>
+                {
+                    Console.WriteLine($"ContinueWith : {target}, {x.Result}");                    
+                    this.listView1.Items[index].SubItems[3].Text = x.Result.ToString();
+                    this.listView1.Items[index].SubItems[2].Text = "Finish";
+                }, TaskScheduler.FromCurrentSynchronizationContext());
 
             }
 
+            int itemIndex = 0;
             foreach (var task in tasks)
             {
-                int index = task.Id - 1; 
-                this.listView1.Items[index].SubItems[1].Text = "Started";
+                this.listView1.Items[itemIndex++].SubItems[2].Text = "Start";
                 task.Start();
             }
 
-            //모든 비동기 작업이 완료 되기를 기다린다. 
-            //Task.WaitAll(tasks, 10000);
-            //Console.WriteLine("All task is done.");
-            //for (var i = 0; i < tasks.Length; i++)
-            //{
-            //    this.listView1.Items[i].SubItems[3].Text = tasks[i].Result.ToString();
-
             //}
-
-            //task중 하나라도 완료 하면 블럭이 해제
-            var taksIndex = Task.WaitAny(tasks, 10000);
-            Console.WriteLine($"완료 : {taksIndex}");
-            for (var i = 0; i < tasks.Length; i++)
-            {
-                if(tasks[i].Status == TaskStatus.RanToCompletion)
-                {
-                    this.listView1.Items[i].SubItems[1].Text = "Finish";
-                    this.listView1.Items[i].SubItems[3].Text = tasks[i].Result.ToString();
-                }
-                else
-                    Console.WriteLine("   Task {0}: {1}", tasks[i].Id, tasks[i].Status);
-
-            }
         }
        
         private void button2_Click(object sender, EventArgs e)
@@ -91,52 +115,99 @@ namespace TAPStudy
             for (var i = 0; i < this.listView1.Items.Count; i++)
             {
                 int target = Convert.ToInt32(this.listView1.Items[i].SubItems[0].Text);
-                tasks[i] = Task.Factory.StartNew(() =>
+                int index = i;
+                tasks[i] = Task.Factory.StartNew( () =>  cal.Calculate((int)target ,index, progresses[index]) );
+
+                this.listView1.Items[i].SubItems[2].Text = "Started";
+
+                tasks[i].ContinueWith(x =>
                {
-                   return cal.Calculate((int)target);
-               });
-
-                this.listView1.Items[i].SubItems[1].Text = "Started";
+                   this.listView1.Items[index].SubItems[2].Text = "Finish";
+                   this.listView1.Items[index].SubItems[3].Text = x.Result.ToString();
+               }, TaskScheduler.FromCurrentSynchronizationContext());
             }
-
-            //모든 task 작업이 완료 될때까지 대기 
-            Task.WaitAll(tasks, 10000);
-
-
-            for (var i = 0; i < this.listView1.Items.Count; i++)
-            {
-                this.listView1.Items[i].SubItems[1].Text = "Finish";
-                this.listView1.Items[i].SubItems[3].Text = tasks[i].Result.ToString();
-            }
-
-
 
         }
 
         //비동기 함수 연속 연결
         private void button3_Click(object sender, EventArgs e)
-        {            
+        {
+
             for (var i = 0; i < this.listView1.Items.Count; i++)
             {
                 int target = Convert.ToInt32(this.listView1.Items[i].SubItems[0].Text);
-                var task = Task<BigInteger>.Factory.StartNew(() => cal.Calculate((int)target)).ContinueWith((x =>
+                //비동기 계산이 시작시에 UI 스레드의 Context를 가지고 있는 TaskSchedualer를  ContinueWith 두번째 인자로 넘김. 
+                int index = i;
+                var task = Task<BigInteger>.Factory.StartNew(() => cal.Calculate((int)target, index, progresses[index])).ContinueWith((x =>
                {
-                   Console.WriteLine( $"ContinueWith : {target}, {x.Result}");
-                   int index = this.listView1.Items.Cast<ListViewItem>().Where( t => (t.Text == target.ToString())).FirstOrDefault().Index;
-                   this.listView1.Items[index].SubItems[1].Text = "Finish";
+                   Console.WriteLine( $"ContinueWith : {target}, {x.Result}");                   
+                   this.listView1.Items[index].SubItems[2].Text = "Finish";
                    this.listView1.Items[index].SubItems[3].Text = x.Result.ToString();
-                   return x.Result;
+                  
                }), TaskScheduler.FromCurrentSynchronizationContext() );
 
-                this.listView1.Items[i].SubItems[1].Text = "Started";
+                this.listView1.Items[i].SubItems[2].Text = "Started";
               
             }
 
         }
 
-        private void button4_Click(object sender, EventArgs e)
-        {
 
+        //async/await 사용하기 
+        private async void button4_Click(object sender, EventArgs e)
+        {
+            var tasks = new Task<BigInteger>[this.listView1.Items.Count];
+            for (var i = 0; i < this.listView1.Items.Count; i++)
+            {
+                this.listView1.Items[i].SubItems[2].Text = "Started";
+                int target = Convert.ToInt32(this.listView1.Items[i].SubItems[0].Text);              
+                tasks[i] = GetCalculateFactorialAsync( i, target );
+            }
+
+            await Task.WhenAll(tasks);
+        }
+
+        private async Task<BigInteger> GetCalculateFactorialAsync( int itemIndex, int input )
+        {
+            
+            var result = await Task.Run(() => { return cal.Calculate(input, itemIndex, progresses[itemIndex]); });
+            this.listView1.Items[itemIndex].SubItems[3].Text = result.ToString();
+            this.listView1.Items[itemIndex].SubItems[2].Text = "Finish";
+            return result;
+
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            //int i = 0; 
+            //for(  i = 0; i < 5; i++ )
+            //{
+            //    Console.WriteLine($"inside For {i} ");
+
+            //}
+
+            //Console.WriteLine($"outside For {i} ");
+            List<Action> list = new List<Action>();
+            for (int i = 0; i < 10; i++)
+            {
+                list.Add(() => Console.WriteLine(i));
+            
+            }
+
+            list.ForEach(p => p());
+        }
+    }
+
+
+    public class ProgressEventArgs : EventArgs
+    {
+        public int index;
+        public int percent;
+
+        public ProgressEventArgs( int index, int percent )
+        {
+            this.index = index;
+            this.percent = percent;
         }
     }
 }
