@@ -40,6 +40,7 @@ namespace TAPStudy
             this.button3 = new System.Windows.Forms.Button();
             this.button4 = new System.Windows.Forms.Button();
             this.button5 = new System.Windows.Forms.Button();
+            this.cancelHeader = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.panel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -49,7 +50,8 @@ namespace TAPStudy
             this.testNumberColHeader,
             this.progressColHeader,
             this.currentColHeader,
-            this.resultColHeader});
+            this.resultColHeader,
+            this.cancelHeader});
             this.listView1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.listView1.FullRowSelect = true;
             this.listView1.GridLines = true;
@@ -74,7 +76,6 @@ namespace TAPStudy
             // currentColHeader
             // 
             this.currentColHeader.Text = "Status";
-            this.resultColHeader.Width = 150;
             // 
             // resultColHeader
             // 
@@ -131,13 +132,16 @@ namespace TAPStudy
             // 
             // button5
             // 
-            this.button5.Location = new System.Drawing.Point(276, 62);
+            this.button5.Location = new System.Drawing.Point(382, 68);
             this.button5.Name = "button5";
-            this.button5.Size = new System.Drawing.Size(75, 23);
+            this.button5.Size = new System.Drawing.Size(131, 23);
             this.button5.TabIndex = 6;
-            this.button5.Text = "Start";
+            this.button5.Text = "All Cancel";
             this.button5.UseVisualStyleBackColor = true;
-            this.button5.Click += new System.EventHandler(this.button5_Click);
+            // 
+            // cancelHeader
+            // 
+            this.cancelHeader.Text = "Cancel";
             // 
             // Form1
             // 
@@ -170,6 +174,7 @@ namespace TAPStudy
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.Button button4;
         private System.Windows.Forms.Button button5;
+        private System.Windows.Forms.ColumnHeader cancelHeader;
     }
 }
 
