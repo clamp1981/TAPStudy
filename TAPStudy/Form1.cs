@@ -161,8 +161,7 @@ namespace TAPStudy
             }
 
         }
-
-        //비동기 함수 연속 연결
+      
         private void button3_Click(object sender, EventArgs e)
         {
 
@@ -193,11 +192,18 @@ namespace TAPStudy
             for (var i = 0; i < this.listView1.Items.Count; i++)
             {
                 this.listView1.Items[i].SubItems[2].Text = "Started";
+                int index = i;
                 int target = Convert.ToInt32(this.listView1.Items[i].SubItems[0].Text);
                 tasks[i] = GetCalculateFactorialAsync(i, target);
             }
 
+            //모든 task가 완료 될때까지 기다린다. 
             await Task.WhenAll(tasks);
+            MessageBox.Show("Done!!");
+            
+
+
+
         }
 
         private async Task<BigInteger> GetCalculateFactorialAsync(int itemIndex, int input)
